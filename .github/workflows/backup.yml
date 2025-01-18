@@ -42,5 +42,5 @@ jobs:
         run: |
           git clone git@github.com:Dk-Watson/ParserForYandexWeather.git
           cd your-repo
-          git remote add backup git@github.com:Dk-Watson/backup-repo.git
+          git remote add backup git@github.com:orangegirl0011/backup.git
           git push backup main 
