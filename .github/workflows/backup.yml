@@ -1,0 +1,46 @@
+name: Backup Repository
+
+on:
+  schedule:
+    - cron: '0 0 * * *'  # Каждый день в 00:00
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+
+    steps:
+      # Шаг 1: Клонирование текущего репозитория
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      # Шаг 2: Проверка, были ли коммиты за последние 24 часа
+      - name: Check if there were commits today
+        id: check-commits
+        run: |
+          # Получаем список коммитов за последние 24 часа
+          COMMITS=$(git log --since="1 day ago" --pretty=oneline)
+          if [ -z "$COMMITS" ]; then
+            echo "No commits today. Skipping backup."
+            echo "should_backup=false" >> $GITHUB_OUTPUT
+          else
+            echo "Commits found. Starting backup."
+            echo "should_backup=true" >> $GITHUB_OUTPUT
+          fi
+
+      # Шаг 3: Настройка SSH-ключа для доступа к другому аккаунту
+      - name: Set up SSH key
+        if: steps.check-commits.outputs.should_backup == 'true'
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.BACKUP_SSH_KEY }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          ssh-keyscan github.com >> ~/.ssh/known_hosts
+
+      # Шаг 4: Клонирование и отправка в резервный репозиторий
+      - name: Clone and push to backup repository
+        if: steps.check-commits.outputs.should_backup == 'true'
+        run: |
+          git clone git@github.com:Dk-Watson/ParserForYandexWeather.git
+          cd your-repo
+          git remote add backup git@github.com:Dk-Watson/backup-repo.git
+          git push backup main 
